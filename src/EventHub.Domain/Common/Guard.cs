@@ -70,14 +70,14 @@ public static class Guard
         return value;
     }
     
-    public static string AgainstInvalidEmail(
-    string? value,
-    string parameterName)
-{
-    var email = AgainstNullOrWhiteSpace(value, parameterName);
+     public static string AgainstInvalidEmail(
+        string? value,
+        string parameterName)
+    {
+     var email = AgainstNullOrWhiteSpace(value, parameterName);
 
-    if (!MailAddress.TryCreate(email, out var parsedEmail) ||
-        !string.Equals(
+         if (!MailAddress.TryCreate(email, out var parsedEmail) ||
+            !string.Equals(
             parsedEmail.Address,
             email,
             StringComparison.OrdinalIgnoreCase))
