@@ -1,4 +1,5 @@
 using EventHub.Domain.Exceptions;
+using System.Net.Mail;
 
 namespace EventHub.Domain.Common;
 
@@ -68,4 +69,23 @@ public static class Guard
 
         return value;
     }
+    
+    public static string AgainstInvalidEmail(
+    string? value,
+    string parameterName)
+{
+    var email = AgainstNullOrWhiteSpace(value, parameterName);
+
+    if (!MailAddress.TryCreate(email, out var parsedEmail) ||
+        !string.Equals(
+            parsedEmail.Address,
+            email,
+            StringComparison.OrdinalIgnoreCase))
+    {
+        throw new ValidationException(
+            $"{parameterName} must be a valid email address.");
+    }
+
+    return email.ToLowerInvariant();
+}
 }
