@@ -9,15 +9,18 @@ public sealed class EventService
 {
     private readonly IUserRepository _userRepository;
     private readonly IEventRepository _eventRepository;
+    private readonly IBookingRepository _bookingRepository;
     private readonly IEventFactory _eventFactory;
 
     public EventService(
         IUserRepository userRepository,
         IEventRepository eventRepository,
+        IBookingRepository bookingRepository,
         IEventFactory eventFactory)
     {
         _userRepository = userRepository;
         _eventRepository = eventRepository;
+        _bookingRepository = bookingRepository;
         _eventFactory = eventFactory;
     }
 
@@ -71,8 +74,34 @@ public sealed class EventService
         EnsureOwnership(eventItem, organizerId);
 
         eventItem.Publish();
+
         _eventRepository.Update(eventItem);
     }
+
+    public void UpdateEvent(
+    Guid organizerId,
+    Guid eventId,
+    string title,
+    string description,
+    DateTime startDate,
+    Venue venue,
+    int capacity,
+    decimal basePrice)
+{
+    var eventItem = GetEvent(eventId);
+
+    EnsureOwnership(eventItem, organizerId);
+
+    eventItem.UpdateBasicInformation(
+        title,
+        description,
+        startDate,
+        venue,
+        capacity,
+        basePrice);
+
+    _eventRepository.Update(eventItem);
+}
 
     public void CancelEvent(
         Guid organizerId,
@@ -82,7 +111,24 @@ public sealed class EventService
 
         EnsureOwnership(eventItem, organizerId);
 
+        // Validate and transition the event first.
         eventItem.Cancel();
+
+        var activeBookings = _bookingRepository
+            .GetByEventId(eventId)
+            .Where(booking => booking.IsActive())
+            .ToList();
+
+        foreach (var booking in activeBookings)
+        {
+            booking.Cancel();
+
+            eventItem.ReleaseSeats(
+                booking.Ticket.Quantity);
+
+            _bookingRepository.Update(booking);
+        }
+
         _eventRepository.Update(eventItem);
     }
 
@@ -93,9 +139,27 @@ public sealed class EventService
             .Where(eventItem =>
                 eventItem.Status is EventStatus.Published
                     or EventStatus.SoldOut)
-            .Where(eventItem => eventItem.IsUpcoming())
+            .Where(eventItem =>
+                eventItem.IsUpcoming())
             .ToList()
             .AsReadOnly();
+    }
+
+    public IReadOnlyCollection<Event> GetOrganizerEvents(
+        Guid organizerId)
+    {
+        var user = _userRepository.GetById(organizerId)
+            ?? throw new EntityNotFoundException(
+                "Organizer was not found.");
+
+        if (user is not Organizer)
+        {
+            throw new UnauthorizedOperationException(
+                "Only organizers can view organizer events.");
+        }
+
+        return _eventRepository
+            .GetByOrganizerId(organizerId);
     }
 
     public IReadOnlyCollection<Event> SearchEvents(
@@ -103,7 +167,8 @@ public sealed class EventService
         EventType? eventType = null,
         string? city = null)
     {
-        IEnumerable<Event> query = GetPublicEvents();
+        IEnumerable<Event> query =
+            GetPublicEvents();
 
         if (!string.IsNullOrWhiteSpace(searchTerm))
         {
@@ -122,7 +187,9 @@ public sealed class EventService
         if (eventType.HasValue)
         {
             query = query.Where(eventItem =>
-                MatchesEventType(eventItem, eventType.Value));
+                MatchesEventType(
+                    eventItem,
+                    eventType.Value));
         }
 
         if (!string.IsNullOrWhiteSpace(city))
@@ -134,7 +201,9 @@ public sealed class EventService
                     StringComparison.OrdinalIgnoreCase));
         }
 
-        return query.ToList().AsReadOnly();
+        return query
+            .ToList()
+            .AsReadOnly();
     }
 
     private Event GetEvent(Guid eventId)
@@ -161,9 +230,15 @@ public sealed class EventService
     {
         return eventType switch
         {
-            EventType.Concert => eventItem is Concert,
-            EventType.Conference => eventItem is Conference,
-            EventType.Workshop => eventItem is Workshop,
+            EventType.Concert =>
+                eventItem is Concert,
+
+            EventType.Conference =>
+                eventItem is Conference,
+
+            EventType.Workshop =>
+                eventItem is Workshop,
+
             _ => false
         };
     }

@@ -33,6 +33,7 @@ var eventService =
     new EventService(
         userRepository,
         eventRepository,
+        bookingRepository,
         eventFactory);
 
 var bookingService =

@@ -59,6 +59,7 @@ public sealed class ApplicationServiceTests
         var eventService = new EventService(
             users,
             events,
+            bookings,
             factory);
 
         var bookingService = new BookingService(
@@ -368,6 +369,163 @@ public void ReportService_ShouldRejectDifferentOrganizer()
         reportService.GenerateEventReport(
             anotherOrganizer.Id,
             eventItem.Id);
+
+    Assert.Throws<UnauthorizedOperationException>(action);
+}
+[Fact]
+public void Organizer_ShouldSeeOwnDraftEvents()
+{
+    var setup = CreateServices();
+
+    var eventItem = setup.eventService.CreateEvent(
+        setup.organizer.Id,
+        EventType.Concert,
+        "Draft Concert",
+        "Not published yet",
+        DateTime.UtcNow.AddDays(10),
+        CreateVenue(),
+        100,
+        50m,
+        "Performer",
+        "Rock");
+
+    var result =
+        setup.eventService.GetOrganizerEvents(
+            setup.organizer.Id);
+
+    Assert.Single(result);
+    Assert.Equal(eventItem.Id, result.Single().Id);
+    Assert.Equal(
+        EventStatus.Draft,
+        result.Single().Status);
+}
+[Fact]
+public void CancelEvent_ShouldCancelActiveBookingsAndRestoreSeats()
+{
+    var setup = CreateServices();
+
+    var eventItem = setup.eventService.CreateEvent(
+        setup.organizer.Id,
+        EventType.Concert,
+        "Summer Concert",
+        "Live music event",
+        DateTime.UtcNow.AddDays(10),
+        CreateVenue(),
+        100,
+        50m,
+        "Performer",
+        "Rock");
+
+    setup.eventService.PublishEvent(
+        setup.organizer.Id,
+        eventItem.Id);
+
+    var booking = setup.bookingService.CreateBooking(
+        setup.customer.Id,
+        eventItem.Id,
+        TicketType.Standard,
+        5);
+
+    Assert.Equal(
+        BookingStatus.Confirmed,
+        booking.Status);
+
+    Assert.Equal(
+        95,
+        eventItem.AvailableSeats);
+
+    setup.eventService.CancelEvent(
+        setup.organizer.Id,
+        eventItem.Id);
+
+    Assert.Equal(
+        EventStatus.Cancelled,
+        eventItem.Status);
+
+    Assert.Equal(
+        BookingStatus.Cancelled,
+        booking.Status);
+
+    Assert.Equal(
+        100,
+        eventItem.AvailableSeats);
+
+    Assert.Equal(
+        0,
+        eventItem.ReservedSeats);
+}
+[Fact]
+public void Organizer_ShouldUpdateOwnEvent()
+{
+    var setup = CreateServices();
+
+    var eventItem = setup.eventService.CreateEvent(
+        setup.organizer.Id,
+        EventType.Concert,
+        "Old Title",
+        "Old Description",
+        DateTime.UtcNow.AddDays(10),
+        CreateVenue(),
+        100,
+        50m,
+        "Performer",
+        "Rock");
+
+    var newVenue = new Venue(
+        "New Hall",
+        "New Street 1",
+        "Sarajevo",
+        300);
+
+    setup.eventService.UpdateEvent(
+        setup.organizer.Id,
+        eventItem.Id,
+        "New Title",
+        "New Description",
+        DateTime.UtcNow.AddDays(20),
+        newVenue,
+        150,
+        75m);
+
+    Assert.Equal("New Title", eventItem.Title);
+    Assert.Equal("New Description", eventItem.Description);
+    Assert.Equal(150, eventItem.Capacity);
+    Assert.Equal(75m, eventItem.BasePrice);
+    Assert.Equal("New Hall", eventItem.Venue.Name);
+}
+[Fact]
+public void Organizer_ShouldNotUpdateAnotherOrganizersEvent()
+{
+    var setup = CreateServices();
+
+    var eventItem = setup.eventService.CreateEvent(
+        setup.organizer.Id,
+        EventType.Concert,
+        "Concert",
+        "Description",
+        DateTime.UtcNow.AddDays(10),
+        CreateVenue(),
+        100,
+        50m,
+        "Performer",
+        "Rock");
+
+    var anotherOrganizer = new Organizer(
+        "Another Organizer",
+        "another@example.com");
+
+    setup.users.Add(anotherOrganizer);
+
+    Action action = () =>
+        setup.eventService.UpdateEvent(
+            anotherOrganizer.Id,
+            eventItem.Id,
+            "Changed",
+            "Changed",
+            DateTime.UtcNow.AddDays(20),
+            CreateVenue(),
+            100,
+            50m);
 
     Assert.Throws<UnauthorizedOperationException>(action);
 }

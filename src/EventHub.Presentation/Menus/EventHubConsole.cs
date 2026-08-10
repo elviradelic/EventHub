@@ -93,6 +93,75 @@ public sealed class EventHubConsole
         Console.WriteLine("Thank you for using EventHub.");
     }
 
+    private void EditEvent()
+{
+    ViewOrganizerEvents();
+
+    Console.Write("Enter event ID to edit: ");
+
+    if (!Guid.TryParse(
+            Console.ReadLine(),
+            out var eventId))
+    {
+        ShowMessage("Invalid event ID.");
+        return;
+    }
+
+    Console.Write("New title: ");
+    var title = Console.ReadLine() ?? string.Empty;
+
+    Console.Write("New description: ");
+    var description = Console.ReadLine() ?? string.Empty;
+
+    Console.Write("Days from today: ");
+
+    if (!int.TryParse(
+            Console.ReadLine(),
+            out var days))
+    {
+        ShowMessage("Invalid number of days.");
+        return;
+    }
+
+    Console.Write("New capacity: ");
+
+    if (!int.TryParse(
+            Console.ReadLine(),
+            out var capacity))
+    {
+        ShowMessage("Invalid capacity.");
+        return;
+    }
+
+    Console.Write("New base price: ");
+
+    if (!decimal.TryParse(
+            Console.ReadLine(),
+            out var basePrice))
+    {
+        ShowMessage("Invalid price.");
+        return;
+    }
+
+    var venue = new Venue(
+        "EventHub Venue",
+        "Main Street 1",
+        "Sarajevo",
+        1000);
+
+    _eventService.UpdateEvent(
+        _organizer.Id,
+        eventId,
+        title,
+        description,
+        DateTime.UtcNow.AddDays(days),
+        venue,
+        capacity,
+        basePrice);
+
+    ShowMessage("Event updated successfully.");
+}
+
     private void BrowseEvents()
     {
         Console.Clear();
@@ -118,9 +187,29 @@ public sealed class EventHubConsole
         Console.Write("City (leave empty for all): ");
         var city = Console.ReadLine();
 
+        Console.WriteLine();
+        Console.WriteLine("Event type:");
+        Console.WriteLine("0. All");
+        Console.WriteLine("1. Concert");
+        Console.WriteLine("2. Conference");
+        Console.WriteLine("3. Workshop");
+
+        Console.Write("Select event type: ");
+
+        EventType? eventType = Console.ReadLine() switch
+        {
+            "0" => null,
+            "1" => EventType.Concert,
+            "2" => EventType.Conference,
+            "3" => EventType.Workshop,
+            _ => throw new ValidationException(
+                "Invalid event type.")
+        };
+
         var events = _eventService.SearchEvents(
             searchTerm,
-            city: city);
+            eventType,
+            city);
 
         DisplayEvents(events);
 
@@ -190,34 +279,39 @@ public sealed class EventHubConsole
             Console.WriteLine($"Organizer: {_organizer.FullName}");
             Console.WriteLine();
             Console.WriteLine("1. Create event");
-            Console.WriteLine("2. Publish event");
-            Console.WriteLine("3. View my events");
-            Console.WriteLine("4. Cancel event");
-            Console.WriteLine("5. Event report");
+            Console.WriteLine("2. Edit event");
+            Console.WriteLine("3. Publish event");
+            Console.WriteLine("4. View my events");
+            Console.WriteLine("5. Cancel event");
+            Console.WriteLine("6. Event report");
             Console.WriteLine("0. Back");
             Console.WriteLine();
 
             Console.Write("Select option: ");
 
             switch (Console.ReadLine())
-            {
+           {
                 case "1":
                     CreateEvent();
                     break;
 
                 case "2":
-                    PublishEvent();
+                    EditEvent();
                     break;
 
                 case "3":
-                    ViewOrganizerEvents();
+                    PublishEvent();
                     break;
 
                 case "4":
-                    CancelEvent();
+                    ViewOrganizerEvents();
                     break;
 
                 case "5":
+                    CancelEvent();
+                    break;
+
+                case "6":
                     ShowEventReport();
                     break;
 
@@ -502,24 +596,20 @@ public sealed class EventHubConsole
     }
 
     private void ViewOrganizerEvents()
-    {
-        Console.Clear();
+{
+    Console.Clear();
 
-        Console.WriteLine("MY EVENTS");
-        Console.WriteLine("=========");
+    Console.WriteLine("MY EVENTS");
+    Console.WriteLine("=========");
 
-        var events = _eventService
-            .SearchEvents();
+    var events =
+        _eventService.GetOrganizerEvents(
+            _organizer.Id);
 
-        var ownedEvents = events
-            .Where(eventItem =>
-                eventItem.OrganizerId == _organizer.Id)
-            .ToList();
+    DisplayEvents(events);
 
-        DisplayEvents(ownedEvents);
-
-        Console.WriteLine();
-    }
+    Console.WriteLine();
+}
 
     private void ShowEventReport()
     {
