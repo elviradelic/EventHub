@@ -1,33 +1,34 @@
-EventHub
+# EventHub
 
-EventHub is a console-based event booking application built with C# and .NET.
+EventHub is a console-based event booking application developed in C# and .NET.
 
-I built this project to practice object-oriented design and work with a more structured C# application. It covers event management, ticket bookings, seat availability, and different pricing rules.
+I built this project to practice object-oriented programming and organize a C# application into separate layers. It handles event management, ticket reservations, seat availability, and pricing rules.
 
 The application currently runs in the console and uses in-memory storage.
 
-Features
+## Features
 
-Create and manage concerts, conferences, and workshops
+- Create and manage concerts, conferences, and workshops
+- Publish and cancel events
+- Book Standard, VIP, and Student tickets
+- Track event capacity and available seats
+- Cancel bookings and release reserved seats
+- Search and filter events
+- Generate basic event and booking reports
+- Validate user input and booking operations
 
-Publish or cancel events
+## Tech Stack
 
-Book Standard, VIP, and Student tickets
+- **Language:** C#
+- **Framework:** .NET 10
+- **Testing:** xUnit
+- **Version Control:** Git
 
-Track available seats and event capacity
+## Project Structure
 
-Cancel bookings and release reserved seats
+The solution is organized into separate projects for domain logic, application services, infrastructure, and the console interface.
 
-Search and filter events
-
-Generate basic event and booking reports
-
-Validate bookings and handle invalid operations
-
-Project Structure
-
-The solution is split into four main projects:
-
+```text
 EventHub/
 ├── src/
 │   ├── EventHub.Domain/
@@ -37,69 +38,91 @@ EventHub/
 ├── tests/
 │   └── EventHub.Tests/
 └── EventHub.slnx
+```
 
-Domain - Event models, bookings, ticket types, and business rules.
+### Domain
 
-Application - Services that handle event and booking operations.
+Contains the core business models and rules, including events, bookings, customers, ticket types, and event capacity management.
 
-Infrastructure - In-memory repositories, event creation, and ticket pricing.
+### Application
 
-Presentation - Console menus and user interaction.
+Handles application operations such as event creation, reservations, cancellations, and event searches.
 
-Tests - Automated tests for the main application components.
+### Infrastructure
 
-Implementation Details
+Contains repository implementations, in-memory data storage, and supporting components for event creation and ticket pricing.
 
-A few parts of the implementation I focused on:
+### Presentation
 
-Using an abstract Event class for shared behavior across different event types.
+Provides the console interface for interacting with the application.
 
-Keeping booking and capacity rules inside the domain model.
+### Tests
 
-Using repository interfaces to separate data access from application logic.
+Contains automated tests covering business rules and application behavior.
 
-Handling event creation through a factory.
+## Design and Implementation
 
-Implementing ticket pricing with separate strategies.
+I used object-oriented programming throughout the project, with a focus on keeping business logic separate from the console interface and data storage.
 
-Writing automated tests for business rules and application services.
+Some of the main implementation decisions include:
 
-The project uses OOP and SOLID principles, along with Repository, Factory, and Strategy patterns where they fit the implementation.
+- **Inheritance and polymorphism:** Different event types share common behavior through an abstract `Event` class.
+- **Encapsulation:** Event capacity, reservations, and status changes are managed through domain methods.
+- **Repository Pattern:** Repository interfaces separate data access from application logic.
+- **Factory Pattern:** Event creation is handled through a dedicated factory.
+- **Strategy Pattern:** Ticket pricing rules are implemented separately for different ticket types.
+- **Dependency Injection:** Components depend on abstractions rather than concrete implementations.
 
-Tech Stack
+The project also applies SOLID principles where they help keep the code organized and easier to maintain.
 
-C#
+## Getting Started
 
-.NET 10
+### Prerequisites
 
-xUnit
+- .NET 10 SDK
+- Git
 
-Git
+### 1. Clone the repository
 
-Getting Started
-
-You'll need the .NET 10 SDK installed.
-
-Clone the repository:
-
+```bash
 git clone https://github.com/elviradelic/EventHub.git
 cd EventHub
+```
 
-Restore dependencies and build:
+### 2. Restore dependencies
 
+```bash
 dotnet restore
+```
+
+### 3. Build the solution
+
+```bash
 dotnet build
+```
 
-Run the application:
+### 4. Run the application
 
+```bash
 dotnet run --project src/EventHub.Presentation
+```
 
-Run the tests:
+### 5. Run the tests
 
+```bash
 dotnet test
+```
 
-Notes
+## Current Limitations
 
-EventHub currently uses in-memory repositories, so data is not persisted between application runs.
+EventHub currently uses in-memory repositories, meaning that application data is not saved between runs.
 
-Database storage and a REST API are possible next steps, but for now I've kept the project focused on the booking logic and application structure.
+The project focuses on implementing the booking logic and organizing the application using a layered architecture.
+
+## Possible Improvements
+
+- Add persistent database storage
+- Expose application functionality through a REST API
+- Add authentication and user accounts
+- Expand automated test coverage
+
